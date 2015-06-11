@@ -14,6 +14,7 @@
 #include <Windows.h>
 #include "SoundDriver.h"
 #include <xaudio2.h>
+#include <wchar.h>
 
 class VoiceCallback : public IXAudio2VoiceCallback
 {
@@ -45,6 +46,14 @@ public:
 	*/
 };
 
+typedef struct XAudio2DeviceID
+{
+	unsigned int index;
+	char* devName;
+	wchar_t* devIdStr;
+
+} XAudio2DeviceID;
+
 class XAudio2SoundDriver :
 	public SoundDriver
 {
@@ -72,9 +81,18 @@ public:
 
 	void SetVolume(DWORD volume);
 
+	BOOL SwitchDevice(unsigned int deviceNum);	// Switches devices
+	BOOL GetDeviceName(unsigned int devNum, char* name);	// Gets a device name
+	BOOL RefreshDevices();						// Refresh device list
+
+
 protected:
 
 	bool dllInitialized;
+	bool devEnumFailed;
+	XAudio2DeviceID* deviceList;
+
+	void DummyDevEnum();
 };
 
 /*

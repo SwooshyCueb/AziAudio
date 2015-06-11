@@ -14,10 +14,23 @@
 #include "XAudio2SoundDriver.h"
 #include "AudioSpec.h"
 #include <stdio.h>
+#include <wchar.h>
+#include <stdlib.h>
+#include <mmdeviceapi.h>
 
-static IXAudio2* g_engine;
+#define USE_PRINTF
+
+#ifdef USE_PRINTF
+#define dprintf printf
+#define dwprintf wprintf
+#else
+#define dprintf //
+#define dwprintf //
+#endif
+
 static IXAudio2SourceVoice* g_source;
 static IXAudio2MasteringVoice* g_master;
+static IXAudio2* g_engine;
 
 static bool audioIsPlaying = false;
 static bool canPlay = false;
@@ -33,6 +46,25 @@ static int lastLength = 1;
 static int cacheSize = 0;
 static int interrupts = 0;
 static VoiceCallback voiceCallback;
+
+static char DummyDevStr[] = {'D', 'e', 'f', 'a', 'u', 'l', 't', ' ',
+	'X', 'A', 'u', 'd', 'i', 'o', '2', ' ',
+	'D', 'e', 'v', 'i', 'c', 'e', '\0'
+};
+//static CLSID CLSID_MMDeviceEnumerator = {
+//	0xBCDE0395, 0xE52F, 0x467C,
+//	{0x8E, 0x3D, 0xC4, 0x57, 0x92, 0x91, 0x69, 0x2E}
+//};
+//static IID IID_IMMDeviceEnumerator = {
+//	0xA95664D2, 0x9614, 0x4F35,
+//	{0xA7, 0x46, 0xDE, 0x8D, 0xB6, 0x36, 0x17, 0xE6}
+//};
+static PROPERTYKEY PKEY_AudioEndpoint_Path = {
+	{0x9c119480, 0xddc2, 0x4954,
+	{0xa1, 0x50, 0x5b, 0xd2, 0x40, 0xd4, 0x54, 0xad}},
+	1
+};
+
 XAudio2SoundDriver::XAudio2SoundDriver()
 {
 	g_engine = NULL;
@@ -70,6 +102,21 @@ BOOL XAudio2SoundDriver::Initialize(HWND hwnd)
 
 	cacheSize = 0;
 	interrupts = 0;
+
+	devEnumFailed = false;
+	deviceList = NULL;
+	configDeviceIdx = 0;
+
+	hMutex = CreateMutex(NULL, FALSE, NULL);
+	if (FAILED(XAudio2Create(&g_engine)))
+	{
+		dprintf("AziXA2: XAudio2Create failed.\n");
+		CoUninitialize();
+		return -1;
+	}
+
+	RefreshDevices();
+
 	return false;
 }
 
@@ -89,18 +136,33 @@ BOOL XAudio2SoundDriver::Setup()
 	cacheSize = 0;
 	interrupts = 0;
 
-	hMutex = CreateMutex(NULL, FALSE, NULL);
-	if (FAILED(XAudio2Create(&g_engine)))
+	if (devEnumFailed)
 	{
-		CoUninitialize();
-		return -1;
-	}
-
-	if (FAILED(g_engine->CreateMasteringVoice(&g_master)))
-	{
-		g_engine->Release();
-		CoUninitialize();
-		return -2;
+		if (FAILED(g_engine->CreateMasteringVoice(&g_master)))
+		{
+			g_engine->Release();
+			CoUninitialize();
+			return -2;
+		}
+	} else {
+		dwprintf(L"AziXA2: Opening audio device %s, ID: %ls.\n", deviceList[configDeviceIdx].devName, deviceList[configDeviceIdx].devIdStr);
+#ifdef XA2_NEW_API
+		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].devIdStr)))
+		{
+			dprintf("AziXA2: Failed opening audio device.\n");
+			g_engine->Release();
+			CoUninitialize();
+			return -2;
+		}
+#else
+		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].index)))
+		{
+			dprintf("AziXA2: Failed opening audio device.\n");
+			g_engine->Release();
+			CoUninitialize();
+			return -2;
+		}
+#endif
 	}
 	canPlay = true;
 
@@ -129,6 +191,217 @@ BOOL XAudio2SoundDriver::Setup()
 	
 	return FALSE;
 }
+
+BOOL XAudio2SoundDriver::RefreshDevices()
+{
+	dprintf("AziXA2: RefreshDevices called.\n");
+	unsigned int nDevices, devStrLen, i, j = 0;
+#ifdef XA2_NEW_API
+	IMMDeviceEnumerator* immDevEnum;
+	IMMDeviceCollection* immDevList;
+	IMMDevice* immDev;
+
+	if (FAILED(CoCreateInstance(CLSID_MMDeviceEnumerator, NULL, CLSCTX_ALL, IID_IMMDeviceEnumerator, (void**) &immDevEnum)))
+	{
+		dprintf("AziXA2: CoCreateInstance failed.\n");
+		DummyDevEnum();
+		return false;
+	}
+
+	if (FAILED(immDevEnum->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &immDevList)))
+	{
+		dprintf("AziXA2: EnumAudioEndpoints failed.\n");
+		DummyDevEnum();
+		return false;
+	}
+
+	if (FAILED(immDevList->GetCount(&numDevices)))
+	{
+		dprintf("AziXA2: GetCount failed.\n");
+		DummyDevEnum();
+		return false;
+	}
+
+	if (deviceList)
+		free(deviceList);
+
+	deviceList = (XAudio2DeviceID*)malloc(sizeof(XAudio2DeviceID) * numDevices);
+	nDevices = numDevices;
+	dprintf("AziXA2: %u devices found.\n", numDevices);
+
+	for (i = 0; i < nDevices; i++)
+	{
+		dprintf("AziXA2: Getting info on device %u.\n", i);
+		IPropertyStore *propStore;
+		PROPVARIANT varDevName;
+		PROPVARIANT varDevID;
+		PropVariantInit(&varDevName);
+		PropVariantInit(&varDevID);
+		if (FAILED(immDevList->Item(i, &immDev)))
+		{
+			dprintf("AziXA2: Item failed.\n");
+			PropVariantClear(&varDevName);
+			PropVariantClear(&varDevID);
+
+			if (immDev)
+				immDev->Release();
+
+			numDevices--;
+			continue;
+		}
+		if (FAILED(immDev->OpenPropertyStore(STGM_READ, &propStore)))
+		{
+			dprintf("AziXA2: OpenPropertyStore failed.\n");
+			PropVariantClear(&varDevName);
+			PropVariantClear(&varDevID);
+
+			if (propStore)
+				propStore->Release();
+
+			immDev->Release();
+
+			numDevices--;
+			continue;
+		}
+		if (FAILED(propStore->GetValue(PKEY_Device_FriendlyName, &varDevName)))
+		{
+			dprintf("AziXA2: GetValue (devname) failed.\n");
+			PropVariantClear(&varDevName);
+			PropVariantClear(&varDevID);
+			
+			propStore->Release();
+			immDev->Release();
+
+			numDevices--;
+			continue;
+		}
+		if (FAILED(propStore->GetValue(PKEY_AudioEndpoint_Path, &varDevID)))
+		{
+			dprintf("AziXA2: GetValue (devname) failed.\n");
+			PropVariantClear(&varDevName);
+			PropVariantClear(&varDevID);
+
+			propStore->Release();
+			immDev->Release();
+
+			numDevices--;
+			continue;
+		}
+		devStrLen = wcslen(varDevName.pwszVal);
+		deviceList[j].devName = (char*)malloc(devStrLen * sizeof(char));
+		wcstombs(deviceList[j].devName, varDevName.pwszVal, devStrLen);
+		devStrLen = wcslen(varDevID.pwszVal);
+		deviceList[j].devIdStr = (wchar_t*)malloc(devStrLen * sizeof(wchar_t));
+		wcscpy_s(deviceList[j].devIdStr, devStrLen, varDevID.pwszVal);
+
+		PropVariantClear(&varDevName);
+		PropVariantClear(&varDevID);
+
+		propStore->Release();
+		immDev->Release();
+
+		dprintf("AziXA2: Device %u name: %s\n", deviceList[j].devName);
+		dwprintf(L"AziXA2: Device %u ID: %ls\n", deviceList[j].devIdStr);
+		j++;
+	}
+#else
+	XAUDIO2_DEVICE_DETAILS devDetails;
+	if (FAILED(g_engine->GetDeviceCount(&numDevices)))
+	{
+		dprintf("AziXA2: GetDeviceCount failed.\n");
+		DummyDevEnum();
+		return false;
+	}
+
+	if (deviceList)
+		free(deviceList);
+
+	deviceList = (XAudio2DeviceID*)malloc(sizeof(XAudio2DeviceID) * numDevices);
+	nDevices = numDevices;
+	dprintf("AziXA2: %u devices found.\n", numDevices);
+
+	for (i = 0; i < nDevices; i++)
+	{
+		dprintf("AziXA2: Getting info on device %u.\n", i);
+		if (FAILED(g_engine->GetDeviceDetails(i, &devDetails)))
+		{
+			dprintf("AziXA2: GetDeviceDetails failed.\n");
+			numDevices--;
+			continue;
+		}
+		devStrLen = wcslen(devDetails.DisplayName);
+		deviceList[j].devName = (char*)malloc(devStrLen * sizeof(char));
+		wcstombs(deviceList[j].devName, devDetails.DisplayName, devStrLen);
+		devStrLen = wcslen(devDetails.DeviceID);
+		deviceList[j].devIdStr = (wchar_t*)malloc(devStrLen * sizeof(wchar_t));
+		wcscpy_s(deviceList[j].devIdStr, devStrLen, devDetails.DeviceID);
+
+		dprintf("AziXA2: Device %u name: %s\n", deviceList[j].devName);
+		dwprintf(L"AziXA2: Device %u ID: %ls\n", deviceList[j].devIdStr);
+		j++;
+	}
+#endif
+	dprintf("AziXA2: %u useable devices found.\n", numDevices);
+
+	if (numDevices)
+	{
+		devEnumFailed = false;
+		return true;
+	} else {
+		DummyDevEnum();
+		return false;
+	}
+}
+
+void XAudio2SoundDriver::DummyDevEnum()
+{
+	devEnumFailed = true;
+	numDevices = 1;
+}
+
+BOOL XAudio2SoundDriver::SwitchDevice(unsigned int deviceNum)
+{
+	if (!devEnumFailed)
+		return true;
+
+	configDeviceIdx = deviceNum;
+	if (dllInitialized)
+	{
+		dwprintf(L"AziXA2: Opening audio device %s, ID: %ls.\n", deviceList[configDeviceIdx].devName, deviceList[configDeviceIdx].devIdStr);
+#ifdef XA2_NEW_API		
+		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].devIdStr)))
+		{
+			dprintf("AziXA2: Failed opening audio device.\n");
+			// We might be fucked.
+			return -2;
+		}
+#else
+		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].index)))
+		{
+			dprintf("AziXA2: Failed opening audio device.\n");
+			// We might be fucked.
+			return -2;
+		}
+#endif
+	}
+	return true;
+}
+
+BOOL XAudio2SoundDriver::GetDeviceName(unsigned int devNum, char* name)
+{
+	if (devEnumFailed)
+	{
+		int devNameLen = strlen(DummyDevStr);
+		name = (char*)malloc(devNameLen * sizeof(char));
+		strcpy_s(name, devNameLen, DummyDevStr);
+	} else {
+		int devNameLen = strlen(deviceList[devNum].devName);
+		name = (char*)malloc(devNameLen * sizeof(char));
+		strcpy_s(name, devNameLen, deviceList[devNum].devName);
+	}
+	return true;
+}
+
 void XAudio2SoundDriver::DeInitialize()
 {
 	Teardown();

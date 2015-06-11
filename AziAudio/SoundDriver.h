@@ -28,6 +28,7 @@ public:
 	unsigned long configVolume;
 	char configAudioLogFolder[500];
 	char configDevice[100];
+	unsigned int numDevices;
 
 	// Setup and Teardown Functions
 	virtual BOOL Initialize(HWND hwnd) = 0;
@@ -47,9 +48,16 @@ public:
 	virtual DWORD GetReadStatus() = 0;						// Returns the status on the read pointer
 
 	virtual void SetVolume(DWORD volume) = 0;
+
+	virtual BOOL SwitchDevice(unsigned int deviceNum) = 0;	// Switches devices
+	virtual BOOL GetDeviceName(unsigned int devNum, char* name) = 0;	// Gets a device name
+	virtual BOOL RefreshDevices() = 0;						// Refresh device list
+
 	virtual ~SoundDriver() {};
 
 protected:
+	unsigned int configDeviceIdx;
+
 	SoundDriver(){
 		configAIEmulation = true;
 		configSyncAudio = true;
