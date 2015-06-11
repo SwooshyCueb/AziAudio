@@ -47,6 +47,11 @@ DWORD buffsize = 0;
 DWORD laststatus = 0;
 DWORD interruptcnt = 0;
 
+static char DummyDevStr[] = {'D', 'e', 'f', 'a', 'u', 'l', 't', ' ',
+	'D', 'i', 'r', 'e', 'c', 't', 'S', 'o', 'u', 'n', 'd', '8', ' ',
+	'D', 'e', 'v', 'i', 'c', 'e', '\0'
+};
+
 //WaveOut test;
 
 // Fills up a buffer and remixes the audio
@@ -380,6 +385,7 @@ LPDIRECTSOUNDBUFFER lpdsb = NULL;
 // TODO: Should clear out AI registers on romopen and initialize
 BOOL DirectSoundDriver::Initialize(HWND hwnd) {
 	audioIsPlaying = FALSE;
+	configDeviceIdx = 0;
 
 	DSBUFFERDESC        dsPrimaryBuff;
 	WAVEFORMATEX        wfm;
@@ -395,7 +401,13 @@ BOOL DirectSoundDriver::Initialize(HWND hwnd) {
 #if defined(_XBOX)
 	hr = DirectSoundCreate(NULL, &lpds, NULL);
 #else
-	hr = DirectSoundCreate8(NULL, &lpds, NULL);
+	RefreshDevices();
+
+	if (devEnumFailed) {
+		hr = DirectSoundCreate8(NULL, &lpds, NULL);
+	} else {
+		hr = DirectSoundCreate8(deviceList[configDeviceIdx].devGUID, &lpds, NULL);
+	}
 #endif
 //	assert(!FAILED(hr)); // This happens if there is no sound device.
 	if (FAILED(hr))
@@ -444,6 +456,92 @@ BOOL DirectSoundDriver::Initialize(HWND hwnd) {
 	DMALen[0] = DMALen[1] = 0;
 	DMAData[0] = DMAData[1] = NULL;
 	return FALSE;
+}
+
+static BOOL CALLBACK DSEnumCount(_GUID* devGUID, const char* devDescStr, const char* devModuleStr, void* data) {
+	dprintf("AziDS8: DSEnumCount called.\n");
+	UNREFERENCED_PARAMETER(devDescStr);
+	UNREFERENCED_PARAMETER(devModuleStr);
+	UNREFERENCED_PARAMETER(devGUID);
+	DirectSoundDriver* snd = (DirectSoundDriver*)data;
+	snd->numDevices++;
+	return TRUE;
+}
+
+static BOOL CALLBACK DSEnumProc(LPGUID devGUID, LPCSTR devDescStr, LPCSTR devModuleStr, LPVOID data) {
+	dprintf("AziDS8: DSEnumProc called.\n");
+	DirectSoundDriver* snd = (DirectSoundDriver*)data;
+	unsigned int devStrLen;
+
+	dprintf("AziDS8: Device %u - Desc: %s; Module: %s.\n", snd->devicesEnumerated+1, devDescStr, devModuleStr);
+
+	snd->deviceList[snd->devicesEnumerated].devGUID = devGUID;
+
+	devStrLen = strlen(devDescStr);
+	snd->deviceList[snd->devicesEnumerated].devDescStr = (char*)malloc(devStrLen * sizeof(char));
+	strcpy_s(snd->deviceList[snd->devicesEnumerated].devDescStr, devStrLen, devDescStr);
+
+	devStrLen = strlen(devModuleStr);
+	snd->deviceList[snd->devicesEnumerated].devModuleStr = (char*)malloc(devStrLen * sizeof(char));
+	strcpy_s(snd->deviceList[snd->devicesEnumerated].devModuleStr, devStrLen, devModuleStr);
+
+	snd->devicesEnumerated++;
+	return TRUE;
+}
+
+BOOL DirectSoundDriver::RefreshDevices() {
+	dprintf("AziDS8: RefreshDevices called.\n");
+	numDevices = 0;
+
+	if (DirectSoundEnumerate(DSEnumCount, (void*)this) != DS_OK) {
+		DummyDevEnum();
+		return false;
+	}
+	dprintf("AziDS8: Found %u devices.\n", numDevices);
+
+	if (deviceList)
+		free(deviceList);
+
+	deviceList = (DirectSoundDeviceID*)malloc(sizeof(DirectSoundDeviceID) * numDevices);
+	devicesEnumerated = 0;
+
+	if (DirectSoundEnumerate(DSEnumProc, (void*)this) != DS_OK) {
+		DummyDevEnum();
+		return false;
+	}
+	devEnumFailed = false;
+	return true;
+}
+
+void DirectSoundDriver::DummyDevEnum()
+{
+	devEnumFailed = true;
+	numDevices = 1;
+}
+
+BOOL DirectSoundDriver::SwitchDevice(unsigned int deviceNum)
+{
+	if (!devEnumFailed)
+		return true;
+
+	configDeviceIdx = deviceNum;
+	// Do stuff
+	return true;
+}
+
+BOOL DirectSoundDriver::GetDeviceName(unsigned int devNum, char* name)
+{
+	if (devEnumFailed)
+	{
+		int devNameLen = strlen(DummyDevStr);
+		name = (char*)malloc(devNameLen * sizeof(char));
+		strcpy_s(name, devNameLen, DummyDevStr);
+	} else {
+		int devNameLen = strlen(deviceList[devNum].devDescStr);
+		name = (char*)malloc(devNameLen * sizeof(char));
+		strcpy_s(name, devNameLen, deviceList[devNum].devDescStr);
+	}
+	return true;
 }
 
 void DirectSoundDriver::DeInitialize() {

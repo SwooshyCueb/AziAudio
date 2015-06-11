@@ -36,6 +36,14 @@ static DWORD sLOCK_SIZE;
 
 #define BUFFSIZE (writeLoc-readLoc)
 
+typedef struct DirectSoundDeviceID
+{
+	LPGUID devGUID;
+	char* devDescStr;
+	char* devModuleStr;
+
+} DirectSoundDeviceID;
+
 class DirectSoundDriver : public SoundDriver {
 protected:
 	DWORD dwFreqTarget; // Frequency of the Nintendo64 Game Audio
@@ -54,8 +62,14 @@ protected:
 	volatile DWORD remainingBytes;
 	DWORD SampleRate;
 	DWORD SegmentSize;
+	BOOL devEnumFailed;
+
+	void DummyDevEnum();
 
 public:
+
+	DirectSoundDeviceID* deviceList;
+	unsigned int devicesEnumerated;
 
 	friend DWORD WINAPI AudioThreadProc(DirectSoundDriver *ac);
 
@@ -81,5 +95,9 @@ public:
 	DWORD GetReadStatus();						// Returns the status on the read pointer
 
 	void SetVolume(DWORD volume);
+
+	BOOL SwitchDevice(unsigned int deviceNum);	// Switches devices
+	BOOL GetDeviceName(unsigned int devNum, char* name);	// Gets a device name
+	BOOL RefreshDevices();						// Refresh device list
 
 };
