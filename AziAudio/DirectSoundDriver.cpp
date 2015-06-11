@@ -385,7 +385,6 @@ LPDIRECTSOUNDBUFFER lpdsb = NULL;
 // TODO: Should clear out AI registers on romopen and initialize
 BOOL DirectSoundDriver::Initialize(HWND hwnd) {
 	audioIsPlaying = FALSE;
-	configDeviceIdx = 0;
 
 	DSBUFFERDESC        dsPrimaryBuff;
 	WAVEFORMATEX        wfm;
@@ -525,7 +524,10 @@ BOOL DirectSoundDriver::SwitchDevice(unsigned int deviceNum)
 		return true;
 
 	configDeviceIdx = deviceNum;
-	// Do stuff
+	if (lpds) {
+		DeInitialize();
+		Initialize();
+	}
 	return true;
 }
 
