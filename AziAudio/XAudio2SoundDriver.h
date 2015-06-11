@@ -82,7 +82,7 @@ public:
 	void SetVolume(DWORD volume);
 
 	BOOL SwitchDevice(unsigned int deviceNum);	// Switches devices
-	BOOL GetDeviceName(unsigned int devNum, char* name);	// Gets a device name
+	char* GetDeviceName(unsigned int devNum);	// Gets a device name
 	BOOL RefreshDevices();						// Refresh device list
 
 

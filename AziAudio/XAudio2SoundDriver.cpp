@@ -329,12 +329,12 @@ BOOL XAudio2SoundDriver::RefreshDevices()
 			numDevices--;
 			continue;
 		}
-		devStrLen = wcslen(devDetails.DisplayName);
+		devStrLen = wcslen(devDetails.DisplayName) + 1;
 		deviceList[j].devName = (char*)malloc(devStrLen * sizeof(char));
 		wcstombs(deviceList[j].devName, devDetails.DisplayName, devStrLen);
-		devStrLen = wcslen(devDetails.DeviceID);
+		devStrLen = wcslen(devDetails.DeviceID) + 2;
 		deviceList[j].devIdStr = (wchar_t*)malloc(devStrLen * sizeof(wchar_t));
-		wcscpy_s(deviceList[j].devIdStr, devStrLen, devDetails.DeviceID);
+		wcsncpy(deviceList[j].devIdStr, devDetails.DeviceID, devStrLen);
 
 		dprintf("AziXA2: Device %u name: %s\n", deviceList[j].devName);
 		dwprintf(L"AziXA2: Device %u ID: %ls\n", deviceList[j].devIdStr);
@@ -389,17 +389,20 @@ BOOL XAudio2SoundDriver::SwitchDevice(unsigned int deviceNum)
 
 BOOL XAudio2SoundDriver::GetDeviceName(unsigned int devNum, char* name)
 {
+	char *name;
 	if (devEnumFailed)
 	{
-		int devNameLen = strlen(DummyDevStr);
+		int devNameLen = strlen(DummyDevStr) + 1;
 		name = (char*)malloc(devNameLen * sizeof(char));
-		strcpy_s(name, devNameLen, DummyDevStr);
+		strncpy(name, DummyDevStr, devNameLen);
+		//return &DummyDevStr[0];
 	} else {
-		int devNameLen = strlen(deviceList[devNum].devName);
+		int devNameLen = strlen(deviceList[devNum].devName) + 1;
 		name = (char*)malloc(devNameLen * sizeof(char));
-		strcpy_s(name, devNameLen, deviceList[devNum].devName);
+		strncpy(name, deviceList[devNum].devName, devNameLen);
+		//return deviceList[devNum].devName;
 	}
-	return true;
+	return name;
 }
 
 void XAudio2SoundDriver::DeInitialize()

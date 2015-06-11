@@ -50,7 +50,7 @@ public:
 	virtual void SetVolume(DWORD volume) = 0;
 
 	virtual BOOL SwitchDevice(unsigned int deviceNum) = 0;	// Switches devices
-	virtual BOOL GetDeviceName(unsigned int devNum, char* name) = 0;	// Gets a device name
+	virtual char* GetDeviceName(unsigned int devNum) = 0;	// Gets a device name
 	virtual BOOL RefreshDevices() = 0;						// Refresh device list
 
 	virtual ~SoundDriver() {};

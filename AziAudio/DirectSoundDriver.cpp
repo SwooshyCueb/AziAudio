@@ -476,13 +476,17 @@ static BOOL CALLBACK DSEnumProc(LPGUID devGUID, LPCSTR devDescStr, LPCSTR devMod
 
 	snd->deviceList[snd->devicesEnumerated].devGUID = devGUID;
 
-	devStrLen = strlen(devDescStr);
+	devStrLen = strlen(devDescStr) + 1;
+	dprintf("AziDS8: Desc is %u chars long.\n", devStrLen);
 	snd->deviceList[snd->devicesEnumerated].devDescStr = (char*)malloc(devStrLen * sizeof(char));
-	strcpy_s(snd->deviceList[snd->devicesEnumerated].devDescStr, devStrLen, devDescStr);
+	strncpy(snd->deviceList[snd->devicesEnumerated].devDescStr, devDescStr, devStrLen);
 
-	devStrLen = strlen(devModuleStr);
+	devStrLen = strlen(devModuleStr) + 1;
+	dprintf("AziDS8: Module is %u chars long.\n", devStrLen);
 	snd->deviceList[snd->devicesEnumerated].devModuleStr = (char*)malloc(devStrLen * sizeof(char));
-	strcpy_s(snd->deviceList[snd->devicesEnumerated].devModuleStr, devStrLen, devModuleStr);
+	strncpy(snd->deviceList[snd->devicesEnumerated].devModuleStr, devModuleStr, devStrLen);
+
+	dprintf("AziDS8: Desc: %s; Module: %s.\n", snd->deviceList[snd->devicesEnumerated].devDescStr, snd->deviceList[snd->devicesEnumerated].devModuleStr);
 
 	snd->devicesEnumerated++;
 	return TRUE;
@@ -531,19 +535,20 @@ BOOL DirectSoundDriver::SwitchDevice(unsigned int deviceNum)
 	return true;
 }
 
-BOOL DirectSoundDriver::GetDeviceName(unsigned int devNum, char* name)
+char* DirectSoundDriver::GetDeviceName(unsigned int devNum)
 {
+	char* name;
 	if (devEnumFailed)
 	{
-		int devNameLen = strlen(DummyDevStr);
+		int devNameLen = strlen(DummyDevStr) +1;
 		name = (char*)malloc(devNameLen * sizeof(char));
-		strcpy_s(name, devNameLen, DummyDevStr);
+		strncpy(name, DummyDevStr, devNameLen);
 	} else {
-		int devNameLen = strlen(deviceList[devNum].devDescStr);
+		int devNameLen = strlen(deviceList[devNum].devDescStr) +1;
 		name = (char*)malloc(devNameLen * sizeof(char));
-		strcpy_s(name, devNameLen, deviceList[devNum].devDescStr);
+		strncpy(name, deviceList[devNum].devDescStr, devNameLen);
 	}
-	return true;
+	return name;
 }
 
 void DirectSoundDriver::DeInitialize() {
