@@ -33,12 +33,7 @@ DirectSoundDriver snd;// = AudioCode();
 XAudio2SoundDriver snd;// = AudioCode();
 #endif
 
-// Direct Sound selection
-char DSoundDeviceName[10][100];
-LPGUID DSoundGUID[10];
-int DSoundCnt;
-int SelectedDSound;
-
+unsigned int SelectedAudioDevice;
 
 // RSP Test stuff
 
@@ -77,23 +72,6 @@ BOOL WINAPI DllMain(
 	return TRUE;
 }
 
-BOOL CALLBACK DSEnumProc(LPGUID lpGUID, LPCTSTR lpszDesc, LPCTSTR lpszDrvName, LPVOID lpContext )
-{
-	UNREFERENCED_PARAMETER(lpszDrvName);
-	UNREFERENCED_PARAMETER(lpContext);
-	//HWND hDlg = (HWND)lpContext;
-	safe_strcpy(DSoundDeviceName[DSoundCnt], 99, lpszDesc);
-	DSoundGUID[DSoundCnt] = lpGUID;
-	if (strcmp(lpszDesc, snd.configDevice) == 0)
-	{
-		SelectedDSound = DSoundCnt;
-	}
-	DSoundCnt++;
-   
-   return TRUE;
-}
-
-
 EXPORT void CALL DllAbout(HWND hParent) {
 	MessageBoxA(hParent, "No About yet... ", "About Box", MB_OK);
 }
@@ -106,14 +84,16 @@ INT_PTR CALLBACK ConfigProc(
   LPARAM lParam  // second message parameter
   ) {
 	UNREFERENCED_PARAMETER(lParam);
-	int x;
+	unsigned int x, prevSelectedAudioDevice;
 	switch (uMsg) {
 		case WM_INITDIALOG:
 			SendMessage(GetDlgItem(hDlg,IDC_DEVICE  ),CB_RESETCONTENT, 0, 0);
-			for (x = 0; x < DSoundCnt; x++) {
-				SendMessage(GetDlgItem(hDlg,IDC_DEVICE),CB_ADDSTRING, 0, (long)DSoundDeviceName[x]);		
+			for (x = 0; x < snd.numDevices; x++) {
+				char* devName = snd.GetDeviceName(x);
+				SendMessage(GetDlgItem(hDlg,IDC_DEVICE),CB_ADDSTRING, 0, (long)devName);
+				free(devName);
 			}
-			SendMessage(GetDlgItem(hDlg,IDC_DEVICE), CB_SETCURSEL, SelectedDSound, 0);
+			SendMessage(GetDlgItem(hDlg,IDC_DEVICE), CB_SETCURSEL, SelectedAudioDevice, 0);
 			SendMessage(GetDlgItem(hDlg,IDC_OLDSYNC)  ,BM_SETCHECK, snd.configForceSync?BST_CHECKED:BST_UNCHECKED,0);
 			SendMessage(GetDlgItem(hDlg,IDC_AUDIOSYNC),BM_SETCHECK, snd.configSyncAudio?BST_CHECKED:BST_UNCHECKED,0);
 			SendMessage(GetDlgItem(hDlg,IDC_AI       ),BM_SETCHECK, snd.configAIEmulation?BST_CHECKED:BST_UNCHECKED,0);
@@ -134,8 +114,11 @@ INT_PTR CALLBACK ConfigProc(
 					snd.configAIEmulation = SendMessage(GetDlgItem(hDlg,IDC_AI       ),BM_GETSTATE, 0,0) == BST_CHECKED?true:false;
 					snd.configHLE = SendMessage(GetDlgItem(hDlg,IDC_HLE      ),BM_GETSTATE, 0,0) == BST_CHECKED?true:false;
 					snd.configRSP = SendMessage(GetDlgItem(hDlg,IDC_RSP      ),BM_GETSTATE, 0,0) == BST_CHECKED?true:false;
-					SelectedDSound = (int)SendMessage(GetDlgItem(hDlg, IDC_DEVICE), CB_GETCURSEL, 0, 0);
-					safe_strcpy(snd.configDevice, 99, DSoundDeviceName[SelectedDSound]);
+					prevSelectedAudioDevice = SelectedAudioDevice;
+					SelectedAudioDevice = (int)SendMessage(GetDlgItem(hDlg, IDC_DEVICE), CB_GETCURSEL, 0, 0);
+					if (SelectedAudioDevice != prevSelectedAudioDevice) {
+						snd.SwitchDevice(SelectedAudioDevice);
+					}
 					EndDialog(hDlg, 0);
 				break;
 				case IDCANCEL:
@@ -225,9 +208,7 @@ EXPORT BOOL CALL InitiateAudio(AUDIO_INFO Audio_Info) {
 	//RedirectIOToConsole();
 	Dacrate = 0;
 	//CloseDLL ();
-	DSoundCnt = 0;
-	SelectedDSound = 0;
-//	if ( (DirectSoundEnumerate(DSEnumProc, NULL)) != DS_OK ) { printf("Unable to enumerate DirectSound devices\n"); }
+	SelectedAudioDevice = 0;
 
 	snd.configAIEmulation = true;
 	snd.configSyncAudio   = true;
