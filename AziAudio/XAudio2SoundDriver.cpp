@@ -387,7 +387,7 @@ BOOL XAudio2SoundDriver::SwitchDevice(unsigned int deviceNum)
 	return true;
 }
 
-BOOL XAudio2SoundDriver::GetDeviceName(unsigned int devNum, char* name)
+char* XAudio2SoundDriver::GetDeviceName(unsigned int devNum)
 {
 	char *name;
 	if (devEnumFailed)
