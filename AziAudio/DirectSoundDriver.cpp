@@ -526,7 +526,7 @@ BOOL DirectSoundDriver::SwitchDevice(unsigned int deviceNum)
 	configDeviceIdx = deviceNum;
 	if (lpds) {
 		DeInitialize();
-		Initialize();
+		Initialize(NULL);
 	}
 	return true;
 }
