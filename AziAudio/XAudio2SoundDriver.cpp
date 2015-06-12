@@ -223,7 +223,14 @@ BOOL XAudio2SoundDriver::RefreshDevices()
 	}
 
 	if (deviceList)
+	{
+		for (int i = 0; i < numDevices; i++)
+		{
+			free(deviceList[i].devName);
+			free(deviceList[i].devIdStr);
+		}
 		free(deviceList);
+	}
 
 	deviceList = (XAudio2DeviceID*)malloc(sizeof(XAudio2DeviceID) * numDevices);
 	nDevices = numDevices;
@@ -314,7 +321,14 @@ BOOL XAudio2SoundDriver::RefreshDevices()
 	}
 
 	if (deviceList)
+	{
+		for (int i = 0; i < numDevices; i++)
+		{
+			free(deviceList[i].devName);
+			free(deviceList[i].devIdStr);
+		}
 		free(deviceList);
+	}
 
 	deviceList = (XAudio2DeviceID*)malloc(sizeof(XAudio2DeviceID) * numDevices);
 	nDevices = numDevices;

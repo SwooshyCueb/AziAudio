@@ -502,8 +502,14 @@ BOOL DirectSoundDriver::RefreshDevices() {
 	}
 	dprintf("AziDS8: Found %u devices.\n", numDevices);
 
-	if (deviceList)
+	if (deviceList) {
+		for (int i = 0; i < numDevices; i++) {
+			free(deviceList[i].devGUID);
+			free(deviceList[i].devDescStr);
+			free(deviceList[i].devModuleStr);
+		}
 		free(deviceList);
+	}
 
 	deviceList = (DirectSoundDeviceID*)malloc(sizeof(DirectSoundDeviceID) * numDevices);
 	devicesEnumerated = 0;
