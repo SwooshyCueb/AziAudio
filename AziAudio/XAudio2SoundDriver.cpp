@@ -16,7 +16,9 @@
 #include <stdio.h>
 #include <wchar.h>
 #include <stdlib.h>
+#ifdef XA2_NEW_API
 #include <mmdeviceapi.h>
+#endif
 
 //#define USE_PRINTF
 
