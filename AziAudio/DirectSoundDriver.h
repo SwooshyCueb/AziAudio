@@ -75,7 +75,7 @@ public:
 
 	DirectSoundDriver() { lpdsbuf = NULL; lpds = NULL; audioIsDone = false; hMutex = NULL; handleAudioThread = NULL; audioIsPlaying = FALSE; readLoc = writeLoc = remainingBytes = 0; configDeviceIdx = 0; };
 	//DirectSoundDriver() {};
-	~DirectSoundDriver() { };
+	~DirectSoundDriver();
 
 	// Setup and Teardown Functions
 	BOOL Initialize(HWND hwnd);

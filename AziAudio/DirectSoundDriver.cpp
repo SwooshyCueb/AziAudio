@@ -581,6 +581,18 @@ void DirectSoundDriver::DeInitialize() {
 	DMAData[0] = DMAData[0] = NULL;
 }
 
+DirectSoundDriver::~DirectSoundDriver() {
+	if (deviceList) {
+		for (int i = 0; i < numDevices; i++) {
+			free(deviceList[i].devGUID);
+			free(deviceList[i].devDescStr);
+			free(deviceList[i].devModuleStr);
+		}
+		free(deviceList);
+		deviceList = NULL;
+	}
+}
+
 // ---------BLAH--------
 
 // Buffer Functions for the Audio Code

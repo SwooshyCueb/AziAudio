@@ -80,6 +80,17 @@ XAudio2SoundDriver::~XAudio2SoundDriver()
 	DeInitialize();
 	//Teardown();
 	CoUninitialize();
+
+	if (deviceList)
+	{
+		for (int i = 0; i < numDevices; i++)
+		{
+			free(deviceList[i].devName);
+			free(deviceList[i].devIdStr);
+		}
+		free(deviceList);
+		deviceList = NULL;
+	}
 }
 static HANDLE hMutex;
 
