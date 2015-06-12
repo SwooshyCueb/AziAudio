@@ -108,6 +108,16 @@ INT_PTR CALLBACK ConfigProc(
 		break;
 		case WM_COMMAND:
 			switch (LOWORD(wParam)) {
+				case IDC_REFRESH:
+					SendMessage(GetDlgItem(hDlg,IDC_DEVICE  ),CB_RESETCONTENT, 0, 0);
+					snd.RefreshDevices();
+					for (x = 0; x < snd.numDevices; x++) {
+						char* devName = snd.GetDeviceName(x);
+						SendMessage(GetDlgItem(hDlg,IDC_DEVICE),CB_ADDSTRING, 0, (long)devName);
+						free(devName);
+					}
+					SendMessage(GetDlgItem(hDlg,IDC_DEVICE), CB_SETCURSEL, SelectedAudioDevice, 0);
+				break;
 				case IDOK:
 					snd.configForceSync   = SendMessage(GetDlgItem(hDlg,IDC_OLDSYNC  ),BM_GETSTATE, 0,0) == BST_CHECKED?true:false;
 					snd.configSyncAudio   = SendMessage(GetDlgItem(hDlg,IDC_AUDIOSYNC),BM_GETSTATE, 0,0) == BST_CHECKED?true:false;
