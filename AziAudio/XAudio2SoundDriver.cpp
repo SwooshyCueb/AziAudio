@@ -133,7 +133,7 @@ BOOL XAudio2SoundDriver::Initialize(HWND hwnd)
 		CoUninitialize();
 		return -1;
 	}
-	
+
 	if (FAILED(err = g_engine->Initialize(0, XAUDIO2_DEFAULT_PROCESSOR)))
 	{
 		dprintf("AziXA2: XAudio2->Initialize failed with error 0x%x.\n", err);
@@ -164,6 +164,12 @@ BOOL XAudio2SoundDriver::Setup()
 	cacheSize = 0;
 	interrupts = 0;
 
+	if (!deviceList)
+		RefreshDevices();
+
+	if (!deviceList[configDeviceIdx].devName)
+		RefreshDevices();
+
 	if (devEnumFailed)
 	{
 		if (FAILED(g_engine->CreateMasteringVoice(&g_master)))
@@ -175,7 +181,10 @@ BOOL XAudio2SoundDriver::Setup()
 	} else {
 		if (configDeviceIdx >= numDevices)
 			configDeviceIdx = 0;
-		dwprintf(L"AziXA2: Opening audio device %s, ID: %ls.\n", deviceList[configDeviceIdx].devName, deviceList[configDeviceIdx].devIdStr);
+		dprintf("AziXA2: Opening audio device %u\n", configDeviceIdx);
+		dprintf("AziXA2: Device XA2 idx: %u\n", deviceList[configDeviceIdx].index);
+		dprintf("AziXA2: Device name: %s\n", deviceList[configDeviceIdx].devName);
+		dwprintf(L"AziXA2: Device ID: %ls\n", deviceList[configDeviceIdx].devIdStr);
 #ifdef XA2_NEW_API
 		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].devIdStr)))
 		{
@@ -326,12 +335,14 @@ BOOL XAudio2SoundDriver::RefreshDevices()
 			numDevices--;
 			continue;
 		}
-		devStrLen = wcslen(varDevName.pwszVal);
+		devStrLen = wcslen(varDevName.pwszVal) + 1;
 		deviceList[j].devName = (char*)malloc(devStrLen * sizeof(char));
 		wcstombs(deviceList[j].devName, varDevName.pwszVal, devStrLen);
-		devStrLen = wcslen(varDevID.pwszVal);
+		devStrLen = wcslen(varDevID.pwszVal) + 2;
 		deviceList[j].devIdStr = (wchar_t*)malloc(devStrLen * sizeof(wchar_t));
 		wcscpy_s(deviceList[j].devIdStr, devStrLen, varDevID.pwszVal);
+
+		deviceList[j].index = i;
 
 		PropVariantClear(&varDevName);
 		PropVariantClear(&varDevID);
@@ -382,6 +393,8 @@ BOOL XAudio2SoundDriver::RefreshDevices()
 		deviceList[j].devIdStr = (wchar_t*)malloc(devStrLen * sizeof(wchar_t));
 		wcsncpy(deviceList[j].devIdStr, devDetails.DeviceID, devStrLen);
 
+		deviceList[j].index = i;
+
 		dprintf("AziXA2: Device %u name: %s\n", i, deviceList[j].devName);
 		dwprintf(L"AziXA2: Device %u ID: %ls\n", i, deviceList[j].devIdStr);
 		j++;
@@ -419,7 +432,10 @@ BOOL XAudio2SoundDriver::SwitchDevice(unsigned int deviceNum)
 
 	if (dllInitialized)
 	{
-		dwprintf(L"AziXA2: Opening audio device %s, ID: %ls.\n", deviceList[configDeviceIdx].devName, deviceList[configDeviceIdx].devIdStr);
+		dprintf("AziXA2: Opening audio device %u\n", configDeviceIdx);
+		dprintf("AziXA2: Device XA2 idx: %u\n", deviceList[configDeviceIdx].index);
+		dprintf("AziXA2: Device name: %s\n", deviceList[configDeviceIdx].devName);
+		dwprintf(L"AziXA2: Device ID: %ls\n", deviceList[configDeviceIdx].devIdStr);
 #ifdef XA2_NEW_API		
 		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].devIdStr)))
 		{

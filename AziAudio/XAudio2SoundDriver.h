@@ -105,9 +105,9 @@ const CLSID CLSID_XAudio2_20D = {
 # define AZI_CLSID_XAudio2_Debug CLSID_XAudio2_27D
 # define AZI_IID_IXAudio2 IID_IXAudio2_NEW
 #elif !defined(XA2_DLL_VER) || (XA2_DLL_VER > 27) || (XA2_DLL_VER < 20)
-# define XA2_DLL_VER 25
-  // Default to 2.5, the earliest version that will work
-  // (Tested in wine-staging 1.7.42 201505151816 with xact installed via winetricks)
+# define XA2_DLL_VER 24
+  // Default to 2.4, the earliest version that will work
+  // (Tested in wine-staging 1.7.42 201505151816 with xact installed via winetricks and wine 1.7.24)
 #endif
 
 #if XA2_DLL_VER == 27
