@@ -49,6 +49,8 @@ static int cacheSize = 0;
 static int interrupts = 0;
 static VoiceCallback voiceCallback;
 
+static HRESULT err;
+
 static char DummyDevStr[] = "Default XAudio2 Device";
 //static CLSID CLSID_MMDeviceEnumerator = {
 //	0xBCDE0395, 0xE52F, 0x467C,
@@ -99,7 +101,7 @@ static HANDLE hMutex;
 
 BOOL XAudio2SoundDriver::Initialize(HWND hwnd)
 {
-	UNREFERENCED_PARAMETER(hwnd);
+	//UNREFERENCED_PARAMETER(hwnd);
 	if (g_source != NULL)
 	{
 		g_source->Start();
@@ -117,12 +119,29 @@ BOOL XAudio2SoundDriver::Initialize(HWND hwnd)
 	interrupts = 0;
 
 	hMutex = CreateMutex(NULL, FALSE, NULL);
-	if (FAILED(XAudio2Create(&g_engine)))
+#if defined(_XBOX) || defined(XA2_NEW_API)
+	if (FAILED(err = XAudio2Create(&g_engine)))
 	{
-		dprintf("AziXA2: XAudio2Create failed.\n");
+		dprintf("AziXA2: XAudio2Create failed with error 0x%x.\n", err);
 		CoUninitialize();
 		return -1;
 	}
+#else
+	if (FAILED(err = CoCreateInstance(AZI_CLSID_XAudio2, NULL, CLSCTX_INPROC_SERVER, AZI_IID_IXAudio2, (void**)&g_engine)))
+	{
+		dprintf("AziXA2: CoCreateInstance (XAudio2) failed with error 0x%x.\n", err);
+		CoUninitialize();
+		return -1;
+	}
+	
+	if (FAILED(err = g_engine->Initialize(0, XAUDIO2_DEFAULT_PROCESSOR)))
+	{
+		dprintf("AziXA2: XAudio2->Initialize failed with error 0x%x.\n", err);
+		g_engine->Release();
+		CoUninitialize();
+		return -1;
+	}
+#endif
 
 	RefreshDevices();
 

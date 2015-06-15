@@ -23,7 +23,7 @@
 #define STREAM_DMA
 
 #define USE_PRINTF_DEBUG
-#define USE_PRINTF_SUPERDEBUG
+//	#define USE_PRINTF_SUPERDEBUG
 
 #ifdef USE_PRINTF_DEBUG
 #define dprintf printf
