@@ -527,10 +527,10 @@ void DirectSoundDriver::DummyDevEnum()
 
 BOOL DirectSoundDriver::SwitchDevice(unsigned int deviceNum)
 {
+	configDeviceIdx = deviceNum;
 	if (devEnumFailed)
 		return true;
 
-	configDeviceIdx = deviceNum;
 	if (lpds) {
 		DeInitialize();
 		Initialize(NULL);

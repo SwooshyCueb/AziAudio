@@ -384,10 +384,10 @@ void XAudio2SoundDriver::DummyDevEnum()
 
 BOOL XAudio2SoundDriver::SwitchDevice(unsigned int deviceNum)
 {
+	configDeviceIdx = deviceNum;
 	if (devEnumFailed)
 		return true;
 
-	configDeviceIdx = deviceNum;
 	if (dllInitialized)
 	{
 		dwprintf(L"AziXA2: Opening audio device %s, ID: %ls.\n", deviceList[configDeviceIdx].devName, deviceList[configDeviceIdx].devIdStr);
