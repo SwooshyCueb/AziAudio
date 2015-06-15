@@ -49,10 +49,7 @@ static int cacheSize = 0;
 static int interrupts = 0;
 static VoiceCallback voiceCallback;
 
-static char DummyDevStr[] = {'D', 'e', 'f', 'a', 'u', 'l', 't', ' ',
-	'X', 'A', 'u', 'd', 'i', 'o', '2', ' ',
-	'D', 'e', 'v', 'i', 'c', 'e', '\0'
-};
+static char DummyDevStr[] = "Default XAudio2 Device";
 //static CLSID CLSID_MMDeviceEnumerator = {
 //	0xBCDE0395, 0xE52F, 0x467C,
 //	{0x8E, 0x3D, 0xC4, 0x57, 0x92, 0x91, 0x69, 0x2E}

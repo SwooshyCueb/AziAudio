@@ -47,10 +47,7 @@ DWORD buffsize = 0;
 DWORD laststatus = 0;
 DWORD interruptcnt = 0;
 
-static char DummyDevStr[] = {'D', 'e', 'f', 'a', 'u', 'l', 't', ' ',
-	'D', 'i', 'r', 'e', 'c', 't', 'S', 'o', 'u', 'n', 'd', '8', ' ',
-	'D', 'e', 'v', 'i', 'c', 'e', '\0'
-};
+static char DummyDevStr[] = "Default DirectSound8 Device";
 
 //WaveOut test;
 
