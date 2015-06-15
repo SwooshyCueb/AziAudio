@@ -23,7 +23,7 @@
 #define STREAM_DMA
 
 #define USE_PRINTF_DEBUG
-//	#define USE_PRINTF_SUPERDEBUG
+// #define USE_PRINTF_SUPERDEBUG
 
 #ifdef USE_PRINTF_DEBUG
 #define dprintf printf
@@ -411,6 +411,9 @@ BOOL DirectSoundDriver::Initialize(HWND hwnd) {
 	} else {
 		if (configDeviceIdx >= numDevices)
 			configDeviceIdx = 0;
+		dprintf("AziDS8: Opening audio device %u\n", configDeviceIdx);
+		dprintf("AziDS8: Device name: %s\n", deviceList[configDeviceIdx].devDescStr);
+		dprintf("AziDS8: Device module: %s\n", deviceList[configDeviceIdx].devModuleStr);
 		hr = DirectSoundCreate8(deviceList[configDeviceIdx].devGUID, &lpds, NULL);
 	}
 #endif
@@ -483,12 +486,12 @@ static BOOL CALLBACK DSEnumProc(LPGUID devGUID, LPCSTR devDescStr, LPCSTR devMod
 	snd->deviceList[snd->devicesEnumerated].devGUID = devGUID;
 
 	devStrLen = strlen(devDescStr) + 1;
-	dprintf("AziDS8: Desc is %u chars long.\n", devStrLen);
+	//dprintf("AziDS8: Desc is %u chars long.\n", devStrLen);
 	snd->deviceList[snd->devicesEnumerated].devDescStr = (char*)malloc(devStrLen * sizeof(char));
 	strncpy(snd->deviceList[snd->devicesEnumerated].devDescStr, devDescStr, devStrLen);
 
 	devStrLen = strlen(devModuleStr) + 1;
-	dprintf("AziDS8: Module is %u chars long.\n", devStrLen);
+	//dprintf("AziDS8: Module is %u chars long.\n", devStrLen);
 	snd->deviceList[snd->devicesEnumerated].devModuleStr = (char*)malloc(devStrLen * sizeof(char));
 	strncpy(snd->deviceList[snd->devicesEnumerated].devModuleStr, devModuleStr, devStrLen);
 
