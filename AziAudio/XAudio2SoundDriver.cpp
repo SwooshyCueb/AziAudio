@@ -363,8 +363,8 @@ BOOL XAudio2SoundDriver::RefreshDevices()
 		deviceList[j].devIdStr = (wchar_t*)malloc(devStrLen * sizeof(wchar_t));
 		wcsncpy(deviceList[j].devIdStr, devDetails.DeviceID, devStrLen);
 
-		dprintf("AziXA2: Device %u name: %s\n", deviceList[j].devName);
-		dwprintf(L"AziXA2: Device %u ID: %ls\n", deviceList[j].devIdStr);
+		dprintf("AziXA2: Device %u name: %s\n", i, deviceList[j].devName);
+		dwprintf(L"AziXA2: Device %u ID: %ls\n", i, deviceList[j].devIdStr);
 		j++;
 	}
 #endif
