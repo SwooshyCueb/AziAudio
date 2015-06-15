@@ -228,7 +228,6 @@ EXPORT BOOL CALL InitiateAudio(AUDIO_INFO Audio_Info) {
 	snd.configRSP		  = true;
 	safe_strcpy(snd.configAudioLogFolder, 499, "D:\\");
 
-	//snd.configDevice = 0;
 	snd.configVolume = 0;
 
 	memcpy(&AudioInfo, &Audio_Info, sizeof(AUDIO_INFO));
