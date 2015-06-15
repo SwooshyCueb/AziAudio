@@ -20,7 +20,7 @@
 #include <mmdeviceapi.h>
 #endif
 
-#define USE_PRINTF
+//#define USE_PRINTF
 
 #ifdef USE_PRINTF
 #define dprintf printf
