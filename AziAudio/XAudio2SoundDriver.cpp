@@ -101,7 +101,7 @@ static HANDLE hMutex;
 
 BOOL XAudio2SoundDriver::Initialize(HWND hwnd)
 {
-	//UNREFERENCED_PARAMETER(hwnd);
+	UNREFERENCED_PARAMETER(hwnd);
 	if (g_source != NULL)
 	{
 		g_source->Start();
