@@ -20,7 +20,7 @@
 #include <mmdeviceapi.h>
 #endif
 
-//#define USE_PRINTF
+#define USE_PRINTF
 
 #ifdef USE_PRINTF
 #define dprintf printf
@@ -70,6 +70,9 @@ XAudio2SoundDriver::XAudio2SoundDriver()
 	g_source = NULL;
 	g_master = NULL;
 	dllInitialized = false;
+	devEnumFailed = false;
+	deviceList = NULL;
+	configDeviceIdx = 0;
 	CoInitializeEx(NULL, COINIT_MULTITHREADED);
 }
 
@@ -112,10 +115,6 @@ BOOL XAudio2SoundDriver::Initialize(HWND hwnd)
 
 	cacheSize = 0;
 	interrupts = 0;
-
-	devEnumFailed = false;
-	deviceList = NULL;
-	configDeviceIdx = 0;
 
 	hMutex = CreateMutex(NULL, FALSE, NULL);
 	if (FAILED(XAudio2Create(&g_engine)))
@@ -385,7 +384,7 @@ void XAudio2SoundDriver::DummyDevEnum()
 
 BOOL XAudio2SoundDriver::SwitchDevice(unsigned int deviceNum)
 {
-	if (!devEnumFailed)
+	if (devEnumFailed)
 		return true;
 
 	configDeviceIdx = deviceNum;

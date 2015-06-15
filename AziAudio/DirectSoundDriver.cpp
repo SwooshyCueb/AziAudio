@@ -22,7 +22,7 @@
 
 #define STREAM_DMA
 
-//#define USE_PRINTF
+#define USE_PRINTF
 
 #ifdef USE_PRINTF
 #define dprintf printf
@@ -527,7 +527,7 @@ void DirectSoundDriver::DummyDevEnum()
 
 BOOL DirectSoundDriver::SwitchDevice(unsigned int deviceNum)
 {
-	if (!devEnumFailed)
+	if (devEnumFailed)
 		return true;
 
 	configDeviceIdx = deviceNum;
@@ -573,9 +573,30 @@ void DirectSoundDriver::DeInitialize() {
 		hMutex = NULL;
 	}
 
-	lpdsbuf = NULL; lpds = NULL; audioIsDone = false; hMutex = NULL; handleAudioThread = NULL; audioIsPlaying = FALSE; readLoc = writeLoc = remainingBytes = 0;
+	lpdsbuf = NULL;
+	lpds = NULL;
+	audioIsDone = false;
+	hMutex = NULL;
+	handleAudioThread = NULL;
+	audioIsPlaying = FALSE;
+	readLoc = 0;
+	writeLoc = 0;
+	remainingBytes = 0;
 	DMALen[0] = DMALen[0] = 0;
 	DMAData[0] = DMAData[0] = NULL;
+}
+
+DirectSoundDriver::DirectSoundDriver() {
+	lpdsbuf = NULL;
+	lpds = NULL;
+	audioIsDone = false;
+	hMutex = NULL;
+	handleAudioThread = NULL;
+	audioIsPlaying = FALSE;
+	readLoc = 0;
+	writeLoc = 0;
+	remainingBytes = 0;
+	configDeviceIdx = 0;
 }
 
 DirectSoundDriver::~DirectSoundDriver() {
