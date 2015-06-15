@@ -27,7 +27,6 @@ public:
 	bool configRSP;
 	unsigned long configVolume;
 	char configAudioLogFolder[500];
-	char configDevice[100];
 	unsigned int numDevices;
 
 	// Setup and Teardown Functions
@@ -68,10 +67,8 @@ protected:
 		configVolume = 0;
 #if defined(_MSC_VER) && !defined(_CRT_SECURE_NO_WARNINGS) && !defined(_XBOX)
 		strcpy_s(configAudioLogFolder, 500, "D:\\");
-		strcpy_s(configDevice, 100, "");
 #else
 		strcpy(configAudioLogFolder, "D:\\");
-		strcpy(configDevice, "");
 #endif
 	}
 };
