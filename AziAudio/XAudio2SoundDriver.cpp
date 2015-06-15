@@ -154,6 +154,8 @@ BOOL XAudio2SoundDriver::Setup()
 			return -2;
 		}
 	} else {
+		if (configDeviceIdx >= numDevices)
+			configDeviceIdx = 0;
 		dwprintf(L"AziXA2: Opening audio device %s, ID: %ls.\n", deviceList[configDeviceIdx].devName, deviceList[configDeviceIdx].devIdStr);
 #ifdef XA2_NEW_API
 		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].devIdStr)))
@@ -164,6 +166,8 @@ BOOL XAudio2SoundDriver::Setup()
 			return -2;
 		}
 #else
+		if (configDeviceIdx >= numDevices)
+			configDeviceIdx = 0;
 		if (FAILED(g_engine->CreateMasteringVoice(&g_master, XAUDIO2_DEFAULT_CHANNELS, XAUDIO2_DEFAULT_SAMPLERATE, 0, deviceList[configDeviceIdx].index)))
 		{
 			dprintf("AziXA2: Failed opening audio device.\n");
@@ -378,6 +382,7 @@ BOOL XAudio2SoundDriver::RefreshDevices()
 
 void XAudio2SoundDriver::DummyDevEnum()
 {
+	dprintf("AziXA2: Device enumeration failed. We will use default device.\n");
 	devEnumFailed = true;
 	numDevices = 1;
 }
@@ -385,6 +390,11 @@ void XAudio2SoundDriver::DummyDevEnum()
 BOOL XAudio2SoundDriver::SwitchDevice(unsigned int deviceNum)
 {
 	configDeviceIdx = deviceNum;
+	if (configDeviceIdx >= numDevices)
+	{
+		dprintf("AziXA2: Attempting to switch to device of index %u. There are only %u devices. Using index 0.\n", deviceNum, numDevices);
+		configDeviceIdx = 0;
+	}
 	if (devEnumFailed)
 		return true;
 
@@ -420,6 +430,13 @@ char* XAudio2SoundDriver::GetDeviceName(unsigned int devNum)
 		strncpy(name, DummyDevStr, devNameLen);
 		//return &DummyDevStr[0];
 	} else {
+		if (devNum >= numDevices)
+		{
+			dprintf("AziXA2: Trying to get device name of device index %u. There are only %u devices. Returning dummy string.\n", devNum, numDevices);
+			int devNameLen = strlen(DummyDevStr) +1;
+			name = (char*)malloc(devNameLen * sizeof(char));
+			strncpy(name, DummyDevStr, devNameLen);
+		}
 		int devNameLen = strlen(deviceList[devNum].devName) + 1;
 		name = (char*)malloc(devNameLen * sizeof(char));
 		strncpy(name, deviceList[devNum].devName, devNameLen);

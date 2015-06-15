@@ -402,6 +402,8 @@ BOOL DirectSoundDriver::Initialize(HWND hwnd) {
 	if (devEnumFailed) {
 		hr = DirectSoundCreate8(NULL, &lpds, NULL);
 	} else {
+		if (configDeviceIdx >= numDevices)
+			configDeviceIdx = 0;
 		hr = DirectSoundCreate8(deviceList[configDeviceIdx].devGUID, &lpds, NULL);
 	}
 #endif
@@ -521,6 +523,7 @@ BOOL DirectSoundDriver::RefreshDevices() {
 
 void DirectSoundDriver::DummyDevEnum()
 {
+	dprintf("AziDS8: Device enumeration failed. We will use default device.\n");
 	devEnumFailed = true;
 	numDevices = 1;
 }
@@ -528,6 +531,10 @@ void DirectSoundDriver::DummyDevEnum()
 BOOL DirectSoundDriver::SwitchDevice(unsigned int deviceNum)
 {
 	configDeviceIdx = deviceNum;
+	if (configDeviceIdx >= numDevices) {
+		dprintf("AziDS8: Attempting to switch to device of index %u. There are only %u devices. Using index 0.\n", deviceNum, numDevices);
+		configDeviceIdx = 0;
+	}
 	if (devEnumFailed)
 		return true;
 
@@ -547,6 +554,12 @@ char* DirectSoundDriver::GetDeviceName(unsigned int devNum)
 		name = (char*)malloc(devNameLen * sizeof(char));
 		strncpy(name, DummyDevStr, devNameLen);
 	} else {
+		if (devNum >= numDevices) {
+			dprintf("AziDS8: Trying to get device name of device index %u. There are only %u devices. Returning dummy string.\n", devNum, numDevices);
+			int devNameLen = strlen(DummyDevStr) +1;
+			name = (char*)malloc(devNameLen * sizeof(char));
+			strncpy(name, DummyDevStr, devNameLen);
+		}
 		int devNameLen = strlen(deviceList[devNum].devDescStr) +1;
 		name = (char*)malloc(devNameLen * sizeof(char));
 		strncpy(name, deviceList[devNum].devDescStr, devNameLen);
