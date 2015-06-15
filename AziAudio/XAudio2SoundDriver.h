@@ -145,6 +145,14 @@ const CLSID CLSID_XAudio2_20D = {
 # define AZI_CLSID_XAudio2 AZI_CLSID_XAudio2_Debug
 #endif
 
+#ifndef PROPERTYKEY_DEFINED
+# define PROPERTYKEY_DEFINED
+typedef struct _tagpropertykey {
+	GUID fmtid;
+	DWORD pid;
+} PROPERTYKEY;
+#endif
+
 class VoiceCallback : public IXAudio2VoiceCallback
 {
 public:
