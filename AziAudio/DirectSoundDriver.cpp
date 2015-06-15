@@ -22,19 +22,12 @@
 
 #define STREAM_DMA
 
-// #define USE_PRINTF_DEBUG
-// #define USE_PRINTF_SUPERDEBUG
+// #define USE_PRINTF
 
-#ifdef USE_PRINTF_DEBUG
+#ifdef USE_PRINTF
 #define dprintf printf
 #else
 #define dprintf //
-#endif
-
-#ifdef USE_PRINTF_SUPERDEBUG
-#define ddprintf printf
-#else
-#define ddprintf //
 #endif
 
 // TODO: Clean this up a bit...
@@ -78,7 +71,7 @@ void DirectSoundDriver::FillBuffer(BYTE *buff, DWORD len) {
 	}
 	// Write out silence
 
-	if (cnt != len && cnt > 0) { ddprintf("&"); }
+	if (cnt != len && cnt > 0) { dprintf("&"); }
 	while (cnt != len) {
 		*(DWORD *)(&buff[cnt]) = lastValue;
 		cnt += 4;
@@ -110,12 +103,12 @@ void DirectSoundDriver::FillBuffer(BYTE *buff, DWORD len) {
 	}
 
 	if (remainingBytes == 0) {
-		ddprintf("-");
+		dprintf("-");
 		memset(buff, 0, len);
 		return;
 	}
 	if (remainingBytes < len) {
-		ddprintf("!");
+		dprintf("!");
 		memset(buff, 0, len); // Save it for another buffer fill
 		return;
 	}
@@ -130,7 +123,7 @@ void DirectSoundDriver::FillBuffer(BYTE *buff, DWORD len) {
 	}
 	// Check into cnt != len...
 	if (cnt != len)
-		ddprintf("%");
+		printf("%");
 
 	while (cnt != len) {
 		buff[cnt] = 0;
@@ -248,14 +241,14 @@ DWORD WINAPI AudioThreadProc(DirectSoundDriver *ac) {
 						DMALen[2] = 0; DMAData[2] = NULL;
 
 						if (bDoInterrupt == true)
-							ddprintf("D");
+							printf("D");
 						bDoInterrupt = true;
 						*AudioInfo.AI_STATUS_REG &= ~0x80000001;
 						*AudioInfo.MI_INTR_REG |= MI_INTR_AI;
 						if (DMALen[0] == 0 && DMALen[1] == 0)
 						{
 							*AudioInfo.AI_STATUS_REG &= ~0xC0000001;
-							ddprintf("E");
+							dprintf("E");
 						}
 						AudioInfo.CheckInterrupts();
 						break;
@@ -276,12 +269,12 @@ DWORD WINAPI AudioThreadProc(DirectSoundDriver *ac) {
 				ac->writeLoc = 0;
 				}*/
 				if (ac->remainingBytes > MAXBUFFER)
-					ddprintf("M");
+					dprintf("M");
 				//ReleaseMutex(ac->hMutex);
 				if (bDoInterrupt == true)
 				{
 					//Sleep(1);
-					ddprintf("I");
+					dprintf("I");
 				}
 			}
 			else
@@ -298,7 +291,7 @@ DWORD WINAPI AudioThreadProc(DirectSoundDriver *ac) {
 		}
 		// This means we had a buffer segment skipped skip
 		if (next_pos != write_pos) {
-			ddprintf("A");
+			dprintf("A");
 		}
 
 		// Store our last position
@@ -320,7 +313,7 @@ DWORD WINAPI AudioThreadProc(DirectSoundDriver *ac) {
 		}
 		// Fills dwBytes to the Sound Buffer
 		ac->FillBuffer((BYTE *)lpvPtr1, dwBytes1);
-		if (dwBytes2) { ac->FillBuffer((BYTE *)lpvPtr2, dwBytes2); ddprintf("P"); }
+		if (dwBytes2) { ac->FillBuffer((BYTE *)lpvPtr2, dwBytes2); dprintf("P"); }
 		//
 		if FAILED(lpdsbuff->Unlock(lpvPtr1, dwBytes1, lpvPtr2, dwBytes2)) {
 			MessageBox(NULL, "Error unlocking sound buffer", PLUGIN_VERSION, MB_OK | MB_ICONSTOP);
@@ -642,7 +635,7 @@ void DirectSoundDriver::SetFrequency(DWORD Frequency2) {
 	DWORD Frequency = Frequency2;
 	BOOL bAudioPlaying = audioIsPlaying;
 
-	dprintf("SetFrequency()\n");
+	printf("SetFrequency()\n");
 	// MusyX - (Frequency / 80) * 4
 	// 
 	if (bAudioPlaying == TRUE) {
@@ -653,7 +646,7 @@ void DirectSoundDriver::SetFrequency(DWORD Frequency2) {
 	SampleRate = Frequency;
 	SegmentSize = 0; // Trash it... we need to redo the Frequency anyway...
 	SetSegmentSize(LOCK_SIZE);
-	dprintf("Frequency: %i - SegmentSize: %i\n", Frequency, SegmentSize);
+	printf("Frequency: %i - SegmentSize: %i\n", Frequency, SegmentSize);
 	lastLength = 0;
 	writeLoc = 0x0000;
 	readLoc = 0x0000;
@@ -724,7 +717,7 @@ DWORD DirectSoundDriver::AddBuffer(BYTE *start, DWORD length) {
 		//*AudioInfo.AI_STATUS_REG |= 0x80000001;
 		//DMAData[2] = start;
 		//DMALen[2] = length;
-		ddprintf("$");
+		dprintf("$");
 	}
 	//ReleaseMutex(hMutex);
 
